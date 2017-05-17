@@ -99,10 +99,11 @@ static const NSString *AVCaptureStillImageIsCapturingStillImageContext =
   [[videoDataOutput connectionWithMediaType:AVMediaTypeVideo] setEnabled:YES];
 
   previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:session];
-  [previewLayer setBackgroundColor:[[UIColor blackColor] CGColor]];
+  previewLayer.connection.videoOrientation = AVCaptureVideoOrientationLandscapeRight;
+  //[previewLayer setBackgroundColor:[[UIColor blackColor] CGColor]];
   [previewLayer setVideoGravity:AVLayerVideoGravityResizeAspect];
   CALayer *rootLayer = [previewView layer];
-  [rootLayer setMasksToBounds:YES];
+  //[rootLayer setMasksToBounds:YES];
   [previewLayer setFrame:[rootLayer bounds]];
   [rootLayer addSublayer:previewLayer];
   [session startRunning];
@@ -164,17 +165,17 @@ static const NSString *AVCaptureStillImageIsCapturingStillImageContext =
   }
 }
 
-- (AVCaptureVideoOrientation)avOrientationForDeviceOrientation:
-    (UIDeviceOrientation)deviceOrientation {
-  AVCaptureVideoOrientation result =
-      (AVCaptureVideoOrientation)(deviceOrientation);
-  if (deviceOrientation == UIDeviceOrientationLandscapeLeft)
-    result = AVCaptureVideoOrientationLandscapeRight;
-  else if (deviceOrientation == UIDeviceOrientationLandscapeRight)
-    result = AVCaptureVideoOrientationLandscapeLeft;
-  //NSLog(@"orientation, %ld,%ld",(long)deviceOrientation,(long)result);
-  return result;
-}
+//- (AVCaptureVideoOrientation)avOrientationForDeviceOrientation:
+//    (UIDeviceOrientation)deviceOrientation {
+//  AVCaptureVideoOrientation result =
+//      (AVCaptureVideoOrientation)(deviceOrientation);
+//  if (deviceOrientation == UIDeviceOrientationLandscapeLeft)
+//    result = AVCaptureVideoOrientationLandscapeRight;
+//  else if (deviceOrientation == UIDeviceOrientationLandscapeRight)
+//    result = AVCaptureVideoOrientationLandscapeLeft;
+//  //NSLog(@"orientation, %ld,%ld",(long)deviceOrientation,(long)result);
+//  return result;
+//}
 
 - (IBAction)takePicture:(id)sender {
   if ([session isRunning]) {
@@ -258,6 +259,7 @@ static const NSString *AVCaptureStillImageIsCapturingStillImageContext =
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
 didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
        fromConnection:(AVCaptureConnection *)connection {
+  [connection setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
   CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
   [self runCNNOnFrame:pixelBuffer];
 }
@@ -318,10 +320,12 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
   [super viewDidDisappear:animated];
 }
 
-- (BOOL)shouldAutorotateToInterfaceOrientation:
-    (UIInterfaceOrientation)interfaceOrientation {
-  return (interfaceOrientation == UIInterfaceOrientationPortrait);
-}
+
+//- (BOOL)shouldAutorotateToInterfaceOrientation:
+//    (UIInterfaceOrientation)interfaceOrientation {
+//    return (interfaceOrientation == UIInterfaceOrientationLandscapeLeft);
+////  return (interfaceOrientation == UIInterfaceOrientationPortrait);
+//}
 
 - (BOOL)prefersStatusBarHidden {
   return YES;
@@ -363,8 +367,8 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
   NSLog(@"load image %dx%d",fullHeight,image_width);
   // NSLog(@"image_width: %d, image_height: %d, fullHeight: %d", image_width, image_height, fullHeight);
 
-  float scale_w = 320.0f/wanted_input_width;
-  float scale_h = 480.0f/wanted_input_height;
+  float scale_w = 480.0f/wanted_input_width;
+  float scale_h = 320.0f/wanted_input_height;
     
   assert(image_channels >= wanted_input_channels);
   tensorflow::Tensor image_tensor(
@@ -411,7 +415,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 
       for (int index=0;index<probs_vec.size();index++){
         const float probsValue = probs_vec(index);
-        if(probsValue>0.1f){
+        if(probsValue>0.45f){
           [probs_filtered addObject:[NSNumber numberWithFloat:probsValue]];
           std::string label=labels[(tensorflow::StringPiece::size_type)cls_vec(index)];
           [labels_filtered addObject:[NSString stringWithUTF8String:label.c_str()]];
@@ -435,6 +439,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     }
   }
 }
+
 
 - (void)viewDidLoad {
   [super viewDidLoad];
@@ -475,41 +480,11 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
       NSString *label=(NSString *)labels_filtered[i];
       [self addLabelLayerWithText:[NSString stringWithFormat:@"%@ %.2f",label,[probs_filtered[i] floatValue]]
                           originX:[boxes_filtered[i][0] floatValue]*scale_w+mainScreenBounds.origin.x
-                          originY:[boxes_filtered[i][1] floatValue]*scale_h+mainScreenBounds.origin.y
+                          originY:[boxes_filtered[i][1] floatValue]*scale_h-15
                             width:[boxes_filtered[i][2] floatValue]*scale_w
                            height:[boxes_filtered[i][3] floatValue]*scale_h
                         alignment:kCAAlignmentLeft];
-      // [self addLabelLayerWithText:[NSString stringWithFormat:@"%@ %.2f",label,[probs_filtered[i] floatValue]]
-      //                     originX:[boxes_filtered[i][0] floatValue]*mainScreenBounds.size.width+mainScreenBounds.origin.x
-      //                     originY:[boxes_filtered[i][1] floatValue]*mainScreenBounds.size.height+mainScreenBounds.origin.y
-      //                       width:[boxes_filtered[i][2] floatValue]*mainScreenBounds.size.width
-      //                      height:[boxes_filtered[i][3] floatValue]*mainScreenBounds.size.height
-      //                   alignment:kCAAlignmentLeft];
     }
-    [self addLabelLayerWithText:[NSString stringWithFormat:@"oof1 %.2f", 2.0]
-                        originX:40.0f
-                        originY:60.0f
-                          width:60.0f
-                         height:90.0f
-                      alignment:kCAAlignmentLeft];
-    [self addLabelLayerWithText:[NSString stringWithFormat:@"oof2 %.2f", 2.0]
-                        originX:200.0f
-                        originY:60.0f
-                          width:60.0f
-                         height:90.0f
-                      alignment:kCAAlignmentLeft];
-    [self addLabelLayerWithText:[NSString stringWithFormat:@"oof3 %.2f", 2.0]
-                        originX:20.0f
-                        originY:300.0f
-                          width:60.0f
-                         height:90.0f
-                      alignment:kCAAlignmentLeft];
-    [self addLabelLayerWithText:[NSString stringWithFormat:@"oof4 %.2f", 2.0]
-                        originX:300.0f
-                        originY:300.0f
-                          width:60.0f
-                         height:40.0f
-                      alignment:kCAAlignmentLeft];
     [self addLabelLayerWithText:[NSString stringWithFormat:@"oof5 %.2f", 2.0]
                         originX:200.0f
                         originY:450.0f
@@ -532,8 +507,8 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
                        height:(float)height
                     alignment:(NSString *)alignment {
 
-  // CGRect mainScreenBounds = [[UIScreen mainScreen] bounds];
-  // NSLog(@"full screen bounds x = %.f,y = %.f, width = %.f, height = %.f",mainScreenBounds.origin.x,mainScreenBounds.origin.y,mainScreenBounds.size.width,mainScreenBounds.size.height);
+  CGRect mainScreenBounds = [[UIScreen mainScreen] bounds];
+  NSLog(@"full screen bounds x = %.f,y = %.f, width = %.f, height = %.f",mainScreenBounds.origin.x,mainScreenBounds.origin.y,mainScreenBounds.size.width,mainScreenBounds.size.height);
 
   NSString *const font = @"Menlo-Regular";
   const float fontSize = 5.0f;
@@ -550,7 +525,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     ceilf(width),
     ceilf(height)
   );
-  NSLog(@"box x:%f box y:%f box width:%f box height:%f",realOriginX,realOriginY,width,height);
+  //NSLog(@"box x:%f box y:%f box width:%f box height:%f",realOriginX,realOriginY,width,height);
 
   const CGRect textBounds =
       CGRectMake((realOriginX + marginSizeX), (realOriginY + marginSizeY),
