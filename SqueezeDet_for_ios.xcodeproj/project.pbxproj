@@ -23,6 +23,7 @@
 		592FF92518EE240200C164F8 /* CameraExampleAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 592FF92218EE240200C164F8 /* CameraExampleAppDelegate.m */; };
 		592FF92618EE240200C164F8 /* CameraExampleViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 592FF92418EE240200C164F8 /* CameraExampleViewController.mm */; };
 		5993C7721D5D4E980048CE6A /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5993C7711D5D4E980048CE6A /* Accelerate.framework */; };
+		A51315451ECCF4F3001A63D1 /* quantized_opt_sqdt.pb in Resources */ = {isa = PBXBuildFile; fileRef = A51315441ECCF4F3001A63D1 /* quantized_opt_sqdt.pb */; };
 		D1D28B501EC0413B00E9FE38 /* labels.txt in Resources */ = {isa = PBXBuildFile; fileRef = D1D28B4E1EC0413B00E9FE38 /* labels.txt */; };
 		D1D28B511EC0413B00E9FE38 /* opt_sqdt.pb in Resources */ = {isa = PBXBuildFile; fileRef = D1D28B4F1EC0413B00E9FE38 /* opt_sqdt.pb */; };
 /* End PBXBuildFile section */
@@ -52,6 +53,7 @@
 		592FF92318EE240200C164F8 /* CameraExampleViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CameraExampleViewController.h; sourceTree = SOURCE_ROOT; };
 		592FF92418EE240200C164F8 /* CameraExampleViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CameraExampleViewController.mm; sourceTree = SOURCE_ROOT; };
 		5993C7711D5D4E980048CE6A /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS9.3.sdk/System/Library/Frameworks/Accelerate.framework; sourceTree = DEVELOPER_DIR; };
+		A51315441ECCF4F3001A63D1 /* quantized_opt_sqdt.pb */ = {isa = PBXFileReference; lastKnownFileType = file; path = quantized_opt_sqdt.pb; sourceTree = "<group>"; };
 		D1D28B4E1EC0413B00E9FE38 /* labels.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = labels.txt; sourceTree = "<group>"; };
 		D1D28B4F1EC0413B00E9FE38 /* opt_sqdt.pb */ = {isa = PBXFileReference; lastKnownFileType = file; path = opt_sqdt.pb; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -81,6 +83,7 @@
 			children = (
 				D1D28B4E1EC0413B00E9FE38 /* labels.txt */,
 				D1D28B4F1EC0413B00E9FE38 /* opt_sqdt.pb */,
+				A51315441ECCF4F3001A63D1 /* quantized_opt_sqdt.pb */,
 				591D3ED71CFFA83A0059011C /* grace_hopper.jpg */,
 			);
 			path = data;
@@ -179,7 +182,7 @@
 				ORGANIZATIONNAME = "";
 				TargetAttributes = {
 					592FF8B418ECBD7600C164F8 = {
-						DevelopmentTeam = 7FHPK8X4V4;
+						DevelopmentTeam = J22ZE7LR9D;
 					};
 				};
 			};
@@ -206,6 +209,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				591D3EDA1CFFA83A0059011C /* grace_hopper.jpg in Resources */,
+				A51315451ECCF4F3001A63D1 /* quantized_opt_sqdt.pb in Resources */,
 				D1D28B511EC0413B00E9FE38 /* opt_sqdt.pb in Resources */,
 				D1D28B501EC0413B00E9FE38 /* labels.txt in Resources */,
 				592FF90D18EDD0DA00C164F8 /* MainStoryboard_iPhone.storyboard in Resources */,
@@ -275,7 +279,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
-				DEVELOPMENT_TEAM = 7FHPK8X4V4;
+				DEVELOPMENT_TEAM = J22ZE7LR9D;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -312,7 +316,7 @@
 					"-force_load",
 					"$(SRCROOT)/../../makefile/gen/lib/libtensorflow-core.a",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = SqueezeDet;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jordan.SqueezeDet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -341,7 +345,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = YES;
-				DEVELOPMENT_TEAM = 7FHPK8X4V4;
+				DEVELOPMENT_TEAM = J22ZE7LR9D;
 				ENABLE_BITCODE = NO;
 				ENABLE_NS_ASSERTIONS = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -372,7 +376,7 @@
 					"-force_load",
 					"$(SRCROOT)/../../makefile/gen/lib/libtensorflow-core.a",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = SqueezeDet;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jordan.SqueezeDet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";

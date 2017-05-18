@@ -24,7 +24,7 @@
 
 // If you have your own model, modify this to the file name, and make sure
 // you've added the file to your app resources too.
-static NSString* model_file_name = @"opt_sqdt";
+static NSString* model_file_name = @"quantized_opt_sqdt";
 static NSString* model_file_type = @"pb";
 // This controls whether we'll be loading a plain GraphDef proto, or a
 // file created by the convert_graphdef_memmapped_format utility that wraps a
@@ -364,11 +364,15 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     const int marginY = ((fullHeight - image_width) / 2);
     sourceStartAddr = (sourceBaseAddr + (marginY * sourceRowBytes));
   }
-  NSLog(@"load image %dx%d",fullHeight,image_width);
-  // NSLog(@"image_width: %d, image_height: %d, fullHeight: %d", image_width, image_height, fullHeight);
+  //NSLog(@"load image %dx%d",fullHeight,image_width);
+  NSLog(@"image_width: %d, image_height: %d, fullHeight: %d, wanted_input_width: %d, wanted_input_height: %d", image_width, image_height, fullHeight, wanted_input_width, wanted_input_height);
 
-  float scale_w = 480.0f/wanted_input_width;
-  float scale_h = 320.0f/wanted_input_height;
+    //change hard code here
+  //float scale_w = 480.0f/wanted_input_width;
+  //float scale_h = 320.0f/wanted_input_height;
+    
+    float scale_w = image_width/wanted_input_width;
+    float scale_h = image_height/wanted_input_height;
     
   assert(image_channels >= wanted_input_channels);
   tensorflow::Tensor image_tensor(
@@ -391,14 +395,27 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
       }
     }
   }
-
+    //timer
+    struct timeval t1, t2;
+//end section of timer
   if (tf_session.get()) {
     std::vector<tensorflow::Tensor> outputs;
     NSLog(@"start run");
+    //timer
+    gettimeofday(&t1, NULL); //from #include <sys/time.h>
+
+      
     tensorflow::Status run_status = tf_session->Run(
         {{input_layer_name, image_tensor}},
          {bbox_output, prob_output, class_output}, {}, &outputs);
     NSLog(@"stop run");
+      //timer
+    gettimeofday(&t2, NULL);
+    double elapsedTime;
+
+    // compute and print the elapsed time in millisec
+    elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
+      NSLog(@"run time for model: %f", elapsedTime);
     if (!run_status.ok()) {
       LOG(ERROR) << "Running model failed:" << run_status;
     } else {
@@ -479,6 +496,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     for (int i=0;i<[labels_filtered count];i++){
       NSString *label=(NSString *)labels_filtered[i];
       [self addLabelLayerWithText:[NSString stringWithFormat:@"%@ %.2f",label,[probs_filtered[i] floatValue]]
+       //change hard code here
                           originX:[boxes_filtered[i][0] floatValue]*scale_w+mainScreenBounds.origin.x
                           originY:[boxes_filtered[i][1] floatValue]*scale_h-15
                             width:[boxes_filtered[i][2] floatValue]*scale_w
