@@ -24,7 +24,8 @@
 
 // If you have your own model, modify this to the file name, and make sure
 // you've added the file to your app resources too.
-static NSString* model_file_name = @"quantized_opt_sqdt";
+//static NSString* model_file_name = @"quantized_opt_sqdt";
+static NSString* model_file_name = @"opt_small_sqdt";
 static NSString* model_file_type = @"pb";
 // This controls whether we'll be loading a plain GraphDef proto, or a
 // file created by the convert_graphdef_memmapped_format utility that wraps a
@@ -35,9 +36,11 @@ const bool model_uses_memory_mapping = false;
 static NSString* labels_file_name = @"labels";
 static NSString* labels_file_type = @"txt";
 // These dimensions need to match those the model was trained with.
-const int wanted_input_width = 1242;
-const int wanted_input_height = 375;
+const int wanted_input_width = 960;
+const int wanted_input_height = 288;
 const int wanted_input_channels = 3;
+const int anchor_per_center = 9;
+const int num_det_candidate = wanted_input_height * wanted_input_width / (16 * 16) * anchor_per_center;
 const float input_means[3] = {103.939f, 116.779f, 123.68f};
 const float input_std = 1.0f;
 const std::string input_layer_name = "image_input";
@@ -365,14 +368,15 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     sourceStartAddr = (sourceBaseAddr + (marginY * sourceRowBytes));
   }
   //NSLog(@"load image %dx%d",fullHeight,image_width);
-  NSLog(@"image_width: %d, image_height: %d, fullHeight: %d, wanted_input_width: %d, wanted_input_height: %d", image_width, image_height, fullHeight, wanted_input_width, wanted_input_height);
 
     //change hard code here
-  //float scale_w = 480.0f/wanted_input_width;
-  //float scale_h = 320.0f/wanted_input_height;
+  float scale_w = 480.0f/wanted_input_width;
+  float scale_h = 320.0f/wanted_input_height;
     
-    float scale_w = image_width/wanted_input_width;
-    float scale_h = image_height/wanted_input_height;
+    //float scale_w = image_width/float(wanted_input_width);
+    //float scale_h = image_height/float(wanted_input_height);
+    NSLog(@"image_width: %d, image_height: %d, fullHeight: %d, wanted_input_width: %d, wanted_input_height: %d, scale_w: %f, scale_h: %f", image_width, image_height, fullHeight, wanted_input_width, wanted_input_height, scale_w, scale_h);
+
     
   assert(image_channels >= wanted_input_channels);
   tensorflow::Tensor image_tensor(
@@ -414,7 +418,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     double elapsedTime;
 
     // compute and print the elapsed time in millisec
-    elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
+    elapsedTime = (t2.tv_usec - t1.tv_usec) / 1000000.0 + (t2.tv_sec - t1.tv_sec);  // sec to ms
       NSLog(@"run time for model: %f", elapsedTime);
     if (!run_status.ok()) {
       LOG(ERROR) << "Running model failed:" << run_status;
@@ -422,9 +426,8 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
       tensorflow::Tensor *boxes = &outputs[0];
       tensorflow::Tensor *probs = &outputs[1];
       tensorflow::Tensor *cls = &outputs[2];
-      auto probs_vec = probs->shaped<float, 1>({15048});
-      auto cls_vec = cls->shaped<int64_t, 1>({15048});
-      auto boxes_matrix = boxes->shaped<float, 2>({15048, 4});
+        auto probs_vec = probs->shaped<float, 1>({num_det_candidate});      auto cls_vec = cls->shaped<int64_t, 1>({num_det_candidate});
+      auto boxes_matrix = boxes->shaped<float, 2>({num_det_candidate, 4});
 
       NSMutableArray *probs_filtered = [NSMutableArray array];
       NSMutableArray *labels_filtered = [NSMutableArray array];
@@ -453,6 +456,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
         ];
       });
       // NSLog(@"labels %@ %@",labels_filtered,boxes_filtered);
+
     }
   }
 }
@@ -498,7 +502,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
       [self addLabelLayerWithText:[NSString stringWithFormat:@"%@ %.2f",label,[probs_filtered[i] floatValue]]
        //change hard code here
                           originX:[boxes_filtered[i][0] floatValue]*scale_w+mainScreenBounds.origin.x
-                          originY:[boxes_filtered[i][1] floatValue]*scale_h-15
+                          originY:[boxes_filtered[i][1] floatValue]*scale_h-30
                             width:[boxes_filtered[i][2] floatValue]*scale_w
                            height:[boxes_filtered[i][3] floatValue]*scale_h
                         alignment:kCAAlignmentLeft];
