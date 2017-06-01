@@ -361,7 +361,6 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     sourceStartAddr = (sourceBaseAddr + (marginY * sourceRowBytes));
   }
   NSLog(@"load image %dx%d",fullHeight,image_width);
-  // NSLog(@"image_width: %d, image_height: %d, fullHeight: %d", image_width, image_height, fullHeight);
 
   float scale_w = 320.0f/wanted_input_width;
   float scale_h = 480.0f/wanted_input_height;
@@ -486,36 +485,6 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
       //                      height:[boxes_filtered[i][3] floatValue]*mainScreenBounds.size.height
       //                   alignment:kCAAlignmentLeft];
     }
-    [self addLabelLayerWithText:[NSString stringWithFormat:@"oof1 %.2f", 2.0]
-                        originX:40.0f
-                        originY:60.0f
-                          width:60.0f
-                         height:90.0f
-                      alignment:kCAAlignmentLeft];
-    [self addLabelLayerWithText:[NSString stringWithFormat:@"oof2 %.2f", 2.0]
-                        originX:200.0f
-                        originY:60.0f
-                          width:60.0f
-                         height:90.0f
-                      alignment:kCAAlignmentLeft];
-    [self addLabelLayerWithText:[NSString stringWithFormat:@"oof3 %.2f", 2.0]
-                        originX:20.0f
-                        originY:300.0f
-                          width:60.0f
-                         height:90.0f
-                      alignment:kCAAlignmentLeft];
-    [self addLabelLayerWithText:[NSString stringWithFormat:@"oof4 %.2f", 2.0]
-                        originX:300.0f
-                        originY:300.0f
-                          width:60.0f
-                         height:40.0f
-                      alignment:kCAAlignmentLeft];
-    [self addLabelLayerWithText:[NSString stringWithFormat:@"oof5 %.2f", 2.0]
-                        originX:200.0f
-                        originY:450.0f
-                          width:60.0f
-                         height:190.0f
-                      alignment:kCAAlignmentLeft];
 }
 
 - (void)removeAllLabelLayers {
@@ -550,7 +519,6 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     ceilf(width),
     ceilf(height)
   );
-  NSLog(@"box x:%f box y:%f box width:%f box height:%f",realOriginX,realOriginY,width,height);
 
   const CGRect textBounds =
       CGRectMake((realOriginX + marginSizeX), (realOriginY + marginSizeY),
