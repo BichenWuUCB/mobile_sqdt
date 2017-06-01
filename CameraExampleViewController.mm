@@ -24,7 +24,8 @@
 
 // If you have your own model, modify this to the file name, and make sure
 // you've added the file to your app resources too.
-static NSString* model_file_name = @"opt_sqdt";
+//static NSString* model_file_name = @"quantized_opt_sqdt";
+static NSString* model_file_name = @"opt_small_sqdt";
 static NSString* model_file_type = @"pb";
 // This controls whether we'll be loading a plain GraphDef proto, or a
 // file created by the convert_graphdef_memmapped_format utility that wraps a
@@ -35,9 +36,11 @@ const bool model_uses_memory_mapping = false;
 static NSString* labels_file_name = @"labels";
 static NSString* labels_file_type = @"txt";
 // These dimensions need to match those the model was trained with.
-const int wanted_input_width = 1242;
-const int wanted_input_height = 375;
+const int wanted_input_width = 960;
+const int wanted_input_height = 288;
 const int wanted_input_channels = 3;
+const int anchor_per_center = 9;
+const int num_det_candidate = wanted_input_height * wanted_input_width / (16 * 16) * anchor_per_center;
 const float input_means[3] = {103.939f, 116.779f, 123.68f};
 const float input_std = 1.0f;
 const std::string input_layer_name = "image_input";
@@ -99,10 +102,11 @@ static const NSString *AVCaptureStillImageIsCapturingStillImageContext =
   [[videoDataOutput connectionWithMediaType:AVMediaTypeVideo] setEnabled:YES];
 
   previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:session];
-  [previewLayer setBackgroundColor:[[UIColor blackColor] CGColor]];
+  previewLayer.connection.videoOrientation = AVCaptureVideoOrientationLandscapeRight;
+  //[previewLayer setBackgroundColor:[[UIColor blackColor] CGColor]];
   [previewLayer setVideoGravity:AVLayerVideoGravityResizeAspect];
   CALayer *rootLayer = [previewView layer];
-  [rootLayer setMasksToBounds:YES];
+  //[rootLayer setMasksToBounds:YES];
   [previewLayer setFrame:[rootLayer bounds]];
   [rootLayer addSublayer:previewLayer];
   [session startRunning];
@@ -164,17 +168,17 @@ static const NSString *AVCaptureStillImageIsCapturingStillImageContext =
   }
 }
 
-- (AVCaptureVideoOrientation)avOrientationForDeviceOrientation:
-    (UIDeviceOrientation)deviceOrientation {
-  AVCaptureVideoOrientation result =
-      (AVCaptureVideoOrientation)(deviceOrientation);
-  if (deviceOrientation == UIDeviceOrientationLandscapeLeft)
-    result = AVCaptureVideoOrientationLandscapeRight;
-  else if (deviceOrientation == UIDeviceOrientationLandscapeRight)
-    result = AVCaptureVideoOrientationLandscapeLeft;
-  //NSLog(@"orientation, %ld,%ld",(long)deviceOrientation,(long)result);
-  return result;
-}
+//- (AVCaptureVideoOrientation)avOrientationForDeviceOrientation:
+//    (UIDeviceOrientation)deviceOrientation {
+//  AVCaptureVideoOrientation result =
+//      (AVCaptureVideoOrientation)(deviceOrientation);
+//  if (deviceOrientation == UIDeviceOrientationLandscapeLeft)
+//    result = AVCaptureVideoOrientationLandscapeRight;
+//  else if (deviceOrientation == UIDeviceOrientationLandscapeRight)
+//    result = AVCaptureVideoOrientationLandscapeLeft;
+//  //NSLog(@"orientation, %ld,%ld",(long)deviceOrientation,(long)result);
+//  return result;
+//}
 
 - (IBAction)takePicture:(id)sender {
   if ([session isRunning]) {
@@ -258,6 +262,7 @@ static const NSString *AVCaptureStillImageIsCapturingStillImageContext =
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
 didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
        fromConnection:(AVCaptureConnection *)connection {
+  [connection setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
   CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
   [self runCNNOnFrame:pixelBuffer];
 }
@@ -318,10 +323,12 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
   [super viewDidDisappear:animated];
 }
 
-- (BOOL)shouldAutorotateToInterfaceOrientation:
-    (UIInterfaceOrientation)interfaceOrientation {
-  return (interfaceOrientation == UIInterfaceOrientationPortrait);
-}
+
+//- (BOOL)shouldAutorotateToInterfaceOrientation:
+//    (UIInterfaceOrientation)interfaceOrientation {
+//    return (interfaceOrientation == UIInterfaceOrientationLandscapeLeft);
+////  return (interfaceOrientation == UIInterfaceOrientationPortrait);
+//}
 
 - (BOOL)prefersStatusBarHidden {
   return YES;
@@ -360,10 +367,13 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     const int marginY = ((fullHeight - image_width) / 2);
     sourceStartAddr = (sourceBaseAddr + (marginY * sourceRowBytes));
   }
-  NSLog(@"load image %dx%d",fullHeight,image_width);
+  //NSLog(@"load image %dx%d",fullHeight,image_width);
 
-  float scale_w = 320.0f/wanted_input_width;
-  float scale_h = 480.0f/wanted_input_height;
+  //change hard code here
+  float scale_w = 480.0f/wanted_input_width;
+  float scale_h = 320.0f/wanted_input_height;
+  NSLog(@"image_width: %d, image_height: %d, fullHeight: %d, wanted_input_width: %d, wanted_input_height: %d, scale_w: %f, scale_h: %f", image_width, image_height, fullHeight, wanted_input_width, wanted_input_height, scale_w, scale_h);
+
     
   assert(image_channels >= wanted_input_channels);
   tensorflow::Tensor image_tensor(
@@ -386,23 +396,35 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
       }
     }
   }
-
+    //timer
+    struct timeval t1, t2;
+//end section of timer
   if (tf_session.get()) {
     std::vector<tensorflow::Tensor> outputs;
     NSLog(@"start run");
+    //timer
+    gettimeofday(&t1, NULL); //from #include <sys/time.h>
+
+      
     tensorflow::Status run_status = tf_session->Run(
         {{input_layer_name, image_tensor}},
          {bbox_output, prob_output, class_output}, {}, &outputs);
     NSLog(@"stop run");
+      //timer
+    gettimeofday(&t2, NULL);
+    double elapsedTime;
+
+    // compute and print the elapsed time in millisec
+    elapsedTime = (t2.tv_usec - t1.tv_usec) / 1000000.0 + (t2.tv_sec - t1.tv_sec);  // sec to ms
+      NSLog(@"run time for model: %f", elapsedTime);
     if (!run_status.ok()) {
       LOG(ERROR) << "Running model failed:" << run_status;
     } else {
       tensorflow::Tensor *boxes = &outputs[0];
       tensorflow::Tensor *probs = &outputs[1];
       tensorflow::Tensor *cls = &outputs[2];
-      auto probs_vec = probs->shaped<float, 1>({15048});
-      auto cls_vec = cls->shaped<int64_t, 1>({15048});
-      auto boxes_matrix = boxes->shaped<float, 2>({15048, 4});
+        auto probs_vec = probs->shaped<float, 1>({num_det_candidate});      auto cls_vec = cls->shaped<int64_t, 1>({num_det_candidate});
+      auto boxes_matrix = boxes->shaped<float, 2>({num_det_candidate, 4});
 
       NSMutableArray *probs_filtered = [NSMutableArray array];
       NSMutableArray *labels_filtered = [NSMutableArray array];
@@ -410,7 +432,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 
       for (int index=0;index<probs_vec.size();index++){
         const float probsValue = probs_vec(index);
-        if(probsValue>0.1f){
+        if(probsValue>0.45f){
           [probs_filtered addObject:[NSNumber numberWithFloat:probsValue]];
           std::string label=labels[(tensorflow::StringPiece::size_type)cls_vec(index)];
           [labels_filtered addObject:[NSString stringWithUTF8String:label.c_str()]];
@@ -431,9 +453,11 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
         ];
       });
       // NSLog(@"labels %@ %@",labels_filtered,boxes_filtered);
+
     }
   }
 }
+
 
 - (void)viewDidLoad {
   [super viewDidLoad];
@@ -473,17 +497,12 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     for (int i=0;i<[labels_filtered count];i++){
       NSString *label=(NSString *)labels_filtered[i];
       [self addLabelLayerWithText:[NSString stringWithFormat:@"%@ %.2f",label,[probs_filtered[i] floatValue]]
+       //change hard code here
                           originX:[boxes_filtered[i][0] floatValue]*scale_w+mainScreenBounds.origin.x
-                          originY:[boxes_filtered[i][1] floatValue]*scale_h+mainScreenBounds.origin.y
+                          originY:[boxes_filtered[i][1] floatValue]*scale_h-30
                             width:[boxes_filtered[i][2] floatValue]*scale_w
                            height:[boxes_filtered[i][3] floatValue]*scale_h
                         alignment:kCAAlignmentLeft];
-      // [self addLabelLayerWithText:[NSString stringWithFormat:@"%@ %.2f",label,[probs_filtered[i] floatValue]]
-      //                     originX:[boxes_filtered[i][0] floatValue]*mainScreenBounds.size.width+mainScreenBounds.origin.x
-      //                     originY:[boxes_filtered[i][1] floatValue]*mainScreenBounds.size.height+mainScreenBounds.origin.y
-      //                       width:[boxes_filtered[i][2] floatValue]*mainScreenBounds.size.width
-      //                      height:[boxes_filtered[i][3] floatValue]*mainScreenBounds.size.height
-      //                   alignment:kCAAlignmentLeft];
     }
 }
 
@@ -501,8 +520,8 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
                        height:(float)height
                     alignment:(NSString *)alignment {
 
-  // CGRect mainScreenBounds = [[UIScreen mainScreen] bounds];
-  // NSLog(@"full screen bounds x = %.f,y = %.f, width = %.f, height = %.f",mainScreenBounds.origin.x,mainScreenBounds.origin.y,mainScreenBounds.size.width,mainScreenBounds.size.height);
+  CGRect mainScreenBounds = [[UIScreen mainScreen] bounds];
+  NSLog(@"full screen bounds x = %.f,y = %.f, width = %.f, height = %.f",mainScreenBounds.origin.x,mainScreenBounds.origin.y,mainScreenBounds.size.width,mainScreenBounds.size.height);
 
   NSString *const font = @"Menlo-Regular";
   const float fontSize = 5.0f;
@@ -519,6 +538,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     ceilf(width),
     ceilf(height)
   );
+  //NSLog(@"box x:%f box y:%f box width:%f box height:%f",realOriginX,realOriginY,width,height);
 
   const CGRect textBounds =
       CGRectMake((realOriginX + marginSizeX), (realOriginY + marginSizeY),
