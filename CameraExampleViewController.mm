@@ -18,7 +18,8 @@
 #import <ImageIO/ImageIO.h>
 #import "CameraExampleViewController.h"
 
-#include <sys/time.h>
+// #include <sys/time.h>
+#include <time.h>
 
 #include "tensorflow_utils.h"
 
@@ -396,34 +397,38 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
       }
     }
   }
-    //timer
-    struct timeval t1, t2;
-//end section of timer
+  //timer
+  // struct timeval t1, t2;
+  //end section of timer
   if (tf_session.get()) {
     std::vector<tensorflow::Tensor> outputs;
-    NSLog(@"start run");
+    //NSLog(@"start run");
     //timer
-    gettimeofday(&t1, NULL); //from #include <sys/time.h>
-
-      
+    // gettimeofday(&t1, NULL); //from #include <sys/time.h>
+    clock_t start = clock(), diff;
     tensorflow::Status run_status = tf_session->Run(
         {{input_layer_name, image_tensor}},
          {bbox_output, prob_output, class_output}, {}, &outputs);
-    NSLog(@"stop run");
+    //NSLog(@"stop run");
       //timer
-    gettimeofday(&t2, NULL);
-    double elapsedTime;
+    //gettimeofday(&t2, NULL);
+    diff = clock() - start;
+    int msec = diff * 1000 / CLOCKS_PER_SEC;
+    NSLog(@"run time for model: %d", msec);
+    //double elapsedTime;
 
     // compute and print the elapsed time in millisec
-    elapsedTime = (t2.tv_usec - t1.tv_usec) / 1000000.0 + (t2.tv_sec - t1.tv_sec);  // sec to ms
-      NSLog(@"run time for model: %f", elapsedTime);
+    // elapsedTime = (t2.tv_usec - t1.tv_usec) / 1000000.0 + (t2.tv_sec - t1.tv_sec);  // sec to ms
+    //elapsedTime = (t2.tv_usec - t1.tv_usec) / 1000000.0;
+    //NSLog(@"run time for model: %f", elapsedTime);
     if (!run_status.ok()) {
       LOG(ERROR) << "Running model failed:" << run_status;
     } else {
       tensorflow::Tensor *boxes = &outputs[0];
       tensorflow::Tensor *probs = &outputs[1];
       tensorflow::Tensor *cls = &outputs[2];
-        auto probs_vec = probs->shaped<float, 1>({num_det_candidate});      auto cls_vec = cls->shaped<int64_t, 1>({num_det_candidate});
+      auto probs_vec = probs->shaped<float, 1>({num_det_candidate});
+      auto cls_vec = cls->shaped<int64_t, 1>({num_det_candidate});
       auto boxes_matrix = boxes->shaped<float, 2>({num_det_candidate, 4});
 
       NSMutableArray *probs_filtered = [NSMutableArray array];
